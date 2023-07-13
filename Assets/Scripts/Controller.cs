@@ -6,9 +6,11 @@ public class Controller : MonoBehaviour
 {
 	[SerializeField] private Transform target;
 	[SerializeField] private Transform body;
+	[SerializeField] private Transform sphere;
 	[SerializeField] private Rigidbody[] finger;
 	[SerializeField] private float speed;
 	public float force = 0.4f;
+	public float sensitivity = 0.5f;
 	public bool hold = false;
 	public bool locked = false;
 	private float originBodyY = 0f;
@@ -19,6 +21,7 @@ public class Controller : MonoBehaviour
 	private RaycastHit hit;
 	private void Update()
 	{
+		Debug.DrawRay(sphere.transform.position, Vector3.down * sensitivity, Color.blue);
 		if (Input.GetKeyDown(KeyCode.H))
 		{
 			StartCoroutine(FingerNarrow());
@@ -63,8 +66,16 @@ public class Controller : MonoBehaviour
 		locked = true;
 		float amount = 0f;
 		//StartCoroutine(FingerWide());
-		while(true)
+		while (true)
 		{
+			if (Physics.Raycast(sphere.transform.position, Vector3.down, out RaycastHit hits, sensitivity))
+			{
+				Debug.Log($"Hit item : {hits.transform.gameObject.name}");
+				hold = true;
+				yield return pauseTime;
+				StartCoroutine(Up());
+				yield break;
+			}
 			var delta = (downSpeed * Time.deltaTime * Vector3.up);
 			body.transform.position -= delta;
 			amount += Mathf.Abs(delta.y);
@@ -81,13 +92,23 @@ public class Controller : MonoBehaviour
 	}
 	private IEnumerator Up()
 	{
-		while(true)
+		while (true)
 		{
 			body.transform.position += downSpeed * Time.deltaTime * Vector3.up;
 			if (body.transform.position.y > originBodyY)
 			{
 				body.transform.position = new Vector3(body.transform.position.x, originBodyY, body.transform.position.z);
-				StartCoroutine(GoTarget());
+				if (Physics.CheckBox(sphere.transform.position + new Vector3(0f, -sensitivity, 0f), Vector3.one * sensitivity))
+				{
+					//Debug.Log($"Finall item : {hits.transform.gameObject.name}");
+					StartCoroutine(GoTarget());
+				}
+				else
+				{
+					Debug.Log($"Finall item : No Item");
+					hold = false;
+					locked = false;
+				}
 				yield break;
 			}
 			yield return null;
@@ -96,7 +117,7 @@ public class Controller : MonoBehaviour
 	private IEnumerator FingerWide()
 	{
 		float timer = 0f;
-		while(true)
+		while (true)
 		{
 			finger[0].AddRelativeTorque(new Vector3(0f, 0f, -0.3f));
 			finger[1].AddRelativeTorque(new Vector3(0f, 0f, -0.3f));
@@ -106,7 +127,7 @@ public class Controller : MonoBehaviour
 			//finger[1].transform.Rotate(new Vector3(0f, 0f, -0.2f));
 			//finger[2].transform.Rotate(new Vector3(0f, 0f, -0.2f));
 			//finger[3].transform.Rotate(new Vector3(0f, 0f, -0.2f));
-			
+
 			timer += Time.deltaTime;
 			if (timer > 2f)
 			{
@@ -140,7 +161,7 @@ public class Controller : MonoBehaviour
 	private IEnumerator GoTarget()
 	{
 		Vector3 distance = transform.position - target.transform.position;
-		while(true)
+		while (true)
 		{
 			transform.position -= speed * Time.deltaTime * new Vector3(distance.x, 0f, 0f).normalized;
 			if (transform.position.x <= target.transform.position.x)
@@ -150,7 +171,7 @@ public class Controller : MonoBehaviour
 			}
 			yield return null;
 		}
-		while(true)
+		while (true)
 		{
 			transform.position -= speed * Time.deltaTime * new Vector3(0f, 0f, distance.z).normalized;
 			if (transform.position.z <= target.transform.position.z)
@@ -169,5 +190,7 @@ public class Controller : MonoBehaviour
 		Gizmos.color = Color.red;
 		Gizmos.DrawLine(transform.position, hit.point);
 		Gizmos.DrawSphere(hit.point, 0.1f);
+		Gizmos.color = Color.green;
+		Gizmos.DrawCube(sphere.transform.position + new Vector3(0f, -sensitivity, 0f), Vector3.one * sensitivity);
 	}
 }
