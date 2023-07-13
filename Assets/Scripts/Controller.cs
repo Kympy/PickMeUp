@@ -4,25 +4,49 @@ using UnityEngine;
 
 public class Controller : MonoBehaviour
 {
+	[SerializeField] private Transform target;
 	[SerializeField] private Transform body;
-	[SerializeField] private Transform[] finger;
+	[SerializeField] private Rigidbody[] finger;
 	[SerializeField] private float speed;
-
-	public bool isDown = false;
-	private Coroutine downCoroutine = null;
+	public float force = 0.4f;
+	public bool hold = false;
+	public bool locked = false;
 	private float originBodyY = 0f;
 	private void Awake()
 	{
 		originBodyY = body.transform.position.y;
 	}
+	private RaycastHit hit;
 	private void Update()
 	{
+		if (Input.GetKeyDown(KeyCode.H))
+		{
+			StartCoroutine(FingerNarrow());
+		}
+		else if (Input.GetKeyDown(KeyCode.J))
+		{
+			StartCoroutine(FingerWide());
+		}
+		Physics.Raycast(transform.position, Vector3.down, out hit, 50f);
+		if (hold == true)
+		{
+			finger[0].AddRelativeTorque(new Vector3(0f, 0f, force));
+			finger[1].AddRelativeTorque(new Vector3(0f, 0f, force));
+			finger[2].AddRelativeTorque(new Vector3(0f, 0f, force));
+			finger[3].AddRelativeTorque(new Vector3(0f, 0f, force));
+		}
+		else
+		{
+			finger[0].AddRelativeTorque(new Vector3(0f, 0f, -force));
+			finger[1].AddRelativeTorque(new Vector3(0f, 0f, -force));
+			finger[2].AddRelativeTorque(new Vector3(0f, 0f, -force));
+			finger[3].AddRelativeTorque(new Vector3(0f, 0f, -force));
+		}
+		if (locked == true) return;
 		if (Input.GetKeyDown(KeyCode.Space))
 		{
-			if (isDown == true) return;
-			downCoroutine = StartCoroutine(Down());
+			StartCoroutine(Down());
 		}
-		if (isDown == true) return;
 		float horizontal = Input.GetAxis("Horizontal");
 		float vertical = Input.GetAxis("Vertical");
 
@@ -36,9 +60,9 @@ public class Controller : MonoBehaviour
 	public WaitForSeconds pauseTime = new WaitForSeconds(2f);
 	private IEnumerator Down()
 	{
-		isDown = true;
+		locked = true;
 		float amount = 0f;
-		StartCoroutine(FingerWide());
+		//StartCoroutine(FingerWide());
 		while(true)
 		{
 			var delta = (downSpeed * Time.deltaTime * Vector3.up);
@@ -46,9 +70,10 @@ public class Controller : MonoBehaviour
 			amount += Mathf.Abs(delta.y);
 			if (amount >= downDeep)
 			{
-				StartCoroutine(FingerNarrow());
+				//StartCoroutine(FingerNarrow());
+				hold = true;
 				yield return pauseTime;
-				downCoroutine = StartCoroutine(Up());
+				StartCoroutine(Up());
 				yield break;
 			}
 			yield return null;
@@ -62,8 +87,7 @@ public class Controller : MonoBehaviour
 			if (body.transform.position.y > originBodyY)
 			{
 				body.transform.position = new Vector3(body.transform.position.x, originBodyY, body.transform.position.z);
-				downCoroutine = null;
-				isDown = false;
+				StartCoroutine(GoTarget());
 				yield break;
 			}
 			yield return null;
@@ -74,8 +98,15 @@ public class Controller : MonoBehaviour
 		float timer = 0f;
 		while(true)
 		{
-			finger[0].transform.Rotate(new Vector3(0f, 0f, -0.1f));
-			finger[1].transform.Rotate(new Vector3(0f, 0f, -0.1f));
+			finger[0].AddRelativeTorque(new Vector3(0f, 0f, -0.3f));
+			finger[1].AddRelativeTorque(new Vector3(0f, 0f, -0.3f));
+			finger[2].AddRelativeTorque(new Vector3(0f, 0f, -0.3f));
+			finger[3].AddRelativeTorque(new Vector3(0f, 0f, -0.3f));
+			//finger[0].transform.Rotate(new Vector3(0f, 0f, -0.2f));
+			//finger[1].transform.Rotate(new Vector3(0f, 0f, -0.2f));
+			//finger[2].transform.Rotate(new Vector3(0f, 0f, -0.2f));
+			//finger[3].transform.Rotate(new Vector3(0f, 0f, -0.2f));
+			
 			timer += Time.deltaTime;
 			if (timer > 2f)
 			{
@@ -89,8 +120,15 @@ public class Controller : MonoBehaviour
 		float timer = 0f;
 		while (true)
 		{
-			finger[0].transform.Rotate(new Vector3(0f, 0f, 0.1f));
-			finger[1].transform.Rotate(new Vector3(0f, 0f, 0.1f));
+			finger[0].AddRelativeTorque(new Vector3(0f, 0f, 0.3f));
+			finger[1].AddRelativeTorque(new Vector3(0f, 0f, 0.3f));
+			finger[2].AddRelativeTorque(new Vector3(0f, 0f, 0.3f));
+			finger[3].AddRelativeTorque(new Vector3(0f, 0f, 0.3f));
+			//finger[0].transform.Rotate(new Vector3(0f, 0f, 0.2f));
+			//finger[1].transform.Rotate(new Vector3(0f, 0f, 0.2f));
+			//finger[2].transform.Rotate(new Vector3(0f, 0f, 0.2f));
+			//finger[3].transform.Rotate(new Vector3(0f, 0f, 0.2f));
+
 			timer += Time.deltaTime;
 			if (timer > 2f)
 			{
@@ -98,5 +136,38 @@ public class Controller : MonoBehaviour
 			}
 			yield return null;
 		}
+	}
+	private IEnumerator GoTarget()
+	{
+		Vector3 distance = transform.position - target.transform.position;
+		while(true)
+		{
+			transform.position -= speed * Time.deltaTime * new Vector3(distance.x, 0f, 0f).normalized;
+			if (transform.position.x <= target.transform.position.x)
+			{
+				transform.position = new Vector3(target.transform.position.x, transform.position.y, transform.position.z);
+				break;
+			}
+			yield return null;
+		}
+		while(true)
+		{
+			transform.position -= speed * Time.deltaTime * new Vector3(0f, 0f, distance.z).normalized;
+			if (transform.position.z <= target.transform.position.z)
+			{
+				transform.position = new Vector3(transform.position.x, transform.position.y, target.transform.position.z);
+				break;
+			}
+			yield return null;
+		}
+		yield return new WaitForSeconds(1f);
+		hold = false;
+		locked = false;
+	}
+	private void OnDrawGizmos()
+	{
+		Gizmos.color = Color.red;
+		Gizmos.DrawLine(transform.position, hit.point);
+		Gizmos.DrawSphere(hit.point, 0.1f);
 	}
 }
