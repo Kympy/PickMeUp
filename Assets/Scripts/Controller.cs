@@ -57,6 +57,22 @@ public class Controller : MonoBehaviour
 		if (isMove == false) return;
 		Vector3 direction = new Vector3(horizontal, 0f, vertical).normalized;
 		transform.position += speed * Time.deltaTime * direction;
+		if (transform.position.x > 11f)
+		{
+			transform.position = new Vector3(11f, transform.position.y, transform.position.z);
+		}
+		else if (transform.position.x < target.transform.position.x)
+		{
+			transform.position = new Vector3(target.transform.position.x, transform.position.y, transform.position.z);
+		}
+		if (transform.position.z > 7f)
+		{
+			transform.position = new Vector3(transform.position.x, transform.position.y, 7f);
+		}
+		else if (transform.position.z < target.transform.position.z)
+		{
+			transform.position = new Vector3(transform.position.x, transform.position.y, target.transform.position.z);
+		}
 	}
 	public float downSpeed;
 	public float downDeep;
